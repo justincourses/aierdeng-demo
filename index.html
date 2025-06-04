@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>艾尔登法环全指南</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Vue 3 CDN -->
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  <!-- Headless UI CDN -->
+  <script src="https://unpkg.com/@headlessui/vue@1.7.16/dist/headlessui.umd.js" onload="window.HeadlessUIVue = window.headlessui"></script>
+  <meta name="color-scheme" content="light dark">
+  <style>
+    .fade-enter-active, .fade-leave-active { transition: opacity 0.3s; }
+    .fade-enter-from, .fade-leave-to { opacity: 0; }
+    [v-cloak] { display: none; }
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    html { scroll-behavior: smooth; }
+  </style>
+</head>
+<body class="bg-gradient-to-br from-slate-100 to-slate-200 min-h-screen">
+  <div id="app" v-cloak>
+    <!-- 移动端菜单按钮 -->
+    <div class="fixed top-4 left-4 md:hidden z-50">
+      <button @click="showSidebar = !showSidebar"
+              class="bg-white/90 shadow-lg rounded-lg p-2 text-slate-600 hover:text-slate-900">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+        </svg>
+      </button>
+    </div>
+
+    <div class="flex">
+      <!-- 左侧导航栏 -->
+      <aside :class="[
+        'fixed top-0 left-0 z-40 h-full bg-white/95 backdrop-blur-sm shadow-xl transition-transform duration-300 ease-in-out',
+        'w-72 md:translate-x-0',
+        showSidebar ? 'translate-x-0' : '-translate-x-full'
+      ]">
+        <div class="h-full flex flex-col overflow-y-auto p-4">
+          <!-- 标题 -->
+          <div class="mb-6">
+            <h1 class="text-xl font-bold text-slate-800">艾尔登法环全指南</h1>
+            <p class="text-sm text-slate-500">从新手入门到模组制作</p>
+          </div>
+
+          <!-- 导航列表 -->
+          <nav class="flex-1">
+            <ul class="space-y-1">
+              <li v-for="section in sections" :key="section.id">
+                <a :href="'#' + section.id"
+                   class="block p-3 rounded-lg transition-colors"
+                   :class="[
+                     currentSection === section.id
+                       ? 'bg-blue-50 text-blue-600'
+                       : 'text-slate-600 hover:bg-slate-50'
+                   ]"
+                   @click="showSidebar = false">
+                  <div class="flex items-center gap-3">
+                    <span class="w-6 h-6 flex items-center justify-center rounded-full text-sm"
+                          :class="currentSection === section.id ? 'bg-blue-500 text-white' : 'bg-slate-200'">
+                      {{ section.number }}
+                    </span>
+                    <span class="text-sm font-medium">{{ section.title }}</span>
+                  </div>
+                  <!-- 子章节 -->
+                  <ul v-if="section.subsections" class="mt-2 ml-9 space-y-1">
+                    <li v-for="sub in section.subsections" :key="sub.id">
+                      <button @click.prevent="setActiveTab(section.id, sub.id)"
+                              class="text-sm py-1 px-3 rounded transition-colors"
+                              :class="activeTab[section.id] === sub.id ? 'bg-blue-100 text-blue-700' : 'text-slate-500 hover:text-slate-700'">
+                        {{ sub.title }}
+                      </button>
+                    </li>
+                  </ul>
+                </a>
+              </li>
+            </ul>
+          </nav>
+        </div>
+      </aside>
+
+      <!-- 主内容区 -->
+      <main class="flex-1 min-h-screen md:ml-72">
+        <div class="max-w-4xl mx-auto py-8 px-4">
+          <!-- 欢迎卡片 -->
+          <div class="rounded-2xl shadow-lg bg-gradient-to-br from-slate-900 to-slate-700 text-white p-6 mb-8">
+            <h2 class="text-2xl font-bold mb-2">欢迎来到艾尔登法环</h2>
+            <p class="text-slate-200 mb-4">探索大世界, 挑战强敌。本指南涵盖入门玩法、成长路线、进阶构筑、模组制作等内容，助你在交界地走得更远。</p>
+          </div>
+
+          <!-- 章节内容 -->
+          <div class="space-y-8">
+            <section v-for="section in sections" :key="section.id" :id="section.id" class="scroll-mt-8">
+              <div class="rounded-2xl shadow bg-white/90 p-6">
+                <h2 class="text-2xl font-bold text-slate-800 mb-4 flex items-center gap-2">
+                  <span class="w-8 h-8 flex items-center justify-center rounded-full bg-blue-500 text-white text-sm">
+                    {{ section.number }}
+                  </span>
+                  {{ section.title }}
+                </h2>
+
+                <template v-if="section.subsections">
+                  <!-- Tab 切换区 -->
+                  <div class="mb-6">
+                    <div class="border-b border-slate-200">
+                      <nav class="flex flex-wrap gap-4">
+                        <button v-for="tab in section.subsections"
+                                :key="tab.id"
+                                @click="setActiveTab(section.id, tab.id)"
+                                class="px-4 py-2 border-b-2 text-sm font-medium whitespace-nowrap"
+                                :class="[
+                                  activeTab[section.id] === tab.id
+                                    ? 'border-blue-500 text-blue-600'
+                                    : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+                                ]">
+                          {{ tab.title }}
+                        </button>
+                      </nav>
+                    </div>
+                    <!-- Tab 内容区 -->
+                    <div class="mt-4">
+                      <div v-for="tab in section.subsections"
+                           :key="tab.id"
+                           v-show="activeTab[section.id] === tab.id"
+                           class="space-y-4">
+                        <component :is="tab.component" :data="tab.content"></component>
+                      </div>
+                    </div>
+                  </div>
+                </template>
+
+                <div v-else class="prose prose-slate max-w-none">
+                  <component :is="section.component" :data="section.content"></component>
+                </div>
+              </div>
+            </section>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script>
+    const { createApp, ref, onMounted } = Vue
+    const { Menu, MenuButton, MenuItems, Tab, TabGroup, TabList, TabPanel, TabPanels } = window.HeadlessUIVue || {}
+
+    // 组件定义
+    const BasicInfo = {
+      props: ['data'],
+      template: `
+        <div class="space-y-4">
+          <p class="text-slate-700">{{ data.description }}</p>
+          <div v-if="data.details" class="space-y-2">
+            <div v-for="(detail, idx) in data.details" :key="idx"
+                 class="rounded-lg bg-slate-50 p-4">
+              <h4 class="font-semibold text-slate-700 mb-2">{{ detail.title }}</h4>
+              <div class="text-sm text-slate-600" v-html="detail.content"></div>
+            </div>
+          </div>
+        </div>
+      `
+    }
+
+    const AttributeSystem = {
+      props: ['data'],
+      template: `
+        <div class="space-y-4">
+          <div v-for="(attr, idx) in data" :key="idx"
+               class="rounded-lg bg-slate-50 p-4">
+            <h4 class="font-semibold text-slate-700 mb-2">{{ attr.name }}</h4>
+            <p class="text-sm text-slate-600">{{ attr.description }}</p>
+          </div>
+        </div>
+      `
+    }
+
+    const ControlGuide = {
+      props: ['data'],
+      template: `
+        <div class="space-y-4">
+          <div v-for="(control, idx) in data" :key="idx"
+               class="rounded-lg bg-slate-50 p-4">
+            <h4 class="font-semibold text-slate-700 mb-2">{{ control.type }}</h4>
+            <ul class="list-disc pl-5 text-sm text-slate-600">
+              <li v-for="(item, i) in control.items" :key="i">{{ item }}</li>
+            </ul>
+          </div>
+        </div>
+      `
+    }
+
+    const BuildSystem = {
+      props: ['data'],
+      template: `
+        <div class="space-y-4">
+          <div v-for="(build, idx) in data" :key="idx"
+               class="rounded-lg bg-slate-50 p-4">
+            <h4 class="font-semibold text-slate-700 mb-2">{{ build.name }}</h4>
+            <div class="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <p class="text-slate-500 mb-1">主属性</p>
+                <p class="text-slate-700">{{ build.mainAttr }}</p>
+              </div>
+              <div>
+                <p class="text-slate-500 mb-1">副属性</p>
+                <p class="text-slate-700">{{ build.subAttr }}</p>
+              </div>
+            </div>
+            <div class="mt-2">
+              <p class="text-slate-500 mb-1">特点</p>
+              <p class="text-slate-700">{{ build.features }}</p>
+            </div>
+            <div class="mt-2">
+              <p class="text-slate-500 mb-1">推荐武器/技能</p>
+              <p class="text-slate-700">{{ build.recommendations }}</p>
+            </div>
+          </div>
+        </div>
+      `
+    }
+
+    const ModSystem = {
+      props: ['data'],
+      template: `
+        <div class="space-y-4">
+          <div v-for="(mod, idx) in data" :key="idx"
+               class="rounded-lg bg-slate-50 p-4">
+            <h4 class="font-semibold text-slate-700 mb-2">{{ mod.title }}</h4>
+            <div class="space-y-2">
+              <p class="text-sm text-slate-600">{{ mod.description }}</p>
+              <table v-if="mod.table" class="w-full text-sm">
+                <thead class="bg-slate-100">
+                  <tr>
+                    <th v-for="header in mod.table.headers"
+                        :key="header"
+                        class="p-2 text-left">{{ header }}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="row in mod.table.rows" :key="row.id">
+                    <td v-for="(cell, idx) in row.cells"
+                        :key="idx"
+                        class="p-2 border-t border-slate-200">{{ cell }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      `
+    }
+
+    // Vue 应用
+    const app = createApp({
+      components: {
+        BasicInfo,
+        AttributeSystem,
+        ControlGuide,
+        BuildSystem,
+        ModSystem
+      },
+      setup() {
+        const currentSection = ref('')
+        const activeTab = ref({})
+        const showSidebar = ref(false)
+
+        // 章节数据
+        const sections = ref([
+          {
+            id: 'intro',
+            number: '1',
+            title: '引子：一场属于每个"褪色者"的旅程',
+            component: 'basic-info',
+            content: {
+              description: '《艾尔登法环》由FromSoftware开发，宫崎英高执导，乔治·R·R·马丁参与世界观设定。游戏融合了魂系列高难度战斗与自由探索的特点，是一款独特的开放世界ARPG。',
+              details: [
+                {
+                  title: '游戏特色',
+                  content: '高难度战斗系统、精密的操作机制、碎片化的剧情叙事、广阔的探索空间'
+                },
+                {
+                  title: '适用人群',
+                  content: '从初入坑的新手到追求极限的资深玩家，都能在本指南中找到适合自己的内容'
+                }
+              ]
+            }
+          },
+          {
+            id: 'newbie',
+            number: '2',
+            title: '新手指南：活下去，才有资格成为王',
+            subsections: [
+              {
+                id: 'attributes',
+                title: '角色属性',
+                component: 'attribute-system',
+                content: [
+                  { name: '生命力', description: '提升生存能力，建议新手优先加点' },
+                  { name: '集中力', description: '决定施法次数与特殊战技使用频率' },
+                  { name: '耐力', description: '影响翻滚距离、连击次数与负重能力' },
+                  { name: '力量/灵巧', description: '分别影响大型武器与快速武器使用' },
+                  { name: '智力', description: '驱动法术（魔法类）使用' },
+                  { name: '信仰', description: '驱动祷告，特别是火焰与圣属性祷告' },
+                  { name: '感应', description: '影响中毒、出血等异常状态的触发率' }
+                ]
+              },
+              {
+                id: 'controls',
+                title: '操作指南',
+                component: 'control-guide',
+                content: [
+                  {
+                    type: '键盘鼠标控制',
+                    items: [
+                      '左键：轻攻击',
+                      'Shift+左键：重攻击',
+                      '空格：翻滚/冲刺',
+                      'F：跳跃',
+                      '中键：锁定目标',
+                      'E + 鼠标滚轮：切换武器'
+                    ]
+                  },
+                  {
+                    type: '手柄控制（推荐）',
+                    items: [
+                      'R1/R2：轻/重攻击',
+                      '○/B：翻滚/冲刺',
+                      '△/Y：跳跃',
+                      'R3：锁定目标',
+                      '□/X：使用道具'
+                    ]
+                  }
+                ]
+              },
+              {
+                id: 'explore',
+                title: '探索建议',
+                component: 'basic-info',
+                content: {
+                  description: '初期探索路线推荐：',
+                  details: [
+                    {
+                      title: '起始路线',
+                      content: '1. 漂流墓地苏醒 → 艾雷教堂（与商人对话，开启指引之光）<br>2. 避开大树守卫Boss<br>3. 前往关卡前方赐福点，获得灵马托雷特<br>4. 南下宁姆格福，探索摩恩城，获取强力装备<br>5. 采集锻造石，强化武器'
+                    },
+                    {
+                      title: '刷卢恩建议',
+                      content: '• 关卡前方赐福点刷兵，反复击杀士兵获取卢恩<br>• 亚基尔湖南方刷巨人车队，效率更高'
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            id: 'build',
+            number: '3',
+            title: '构筑与玩法',
+            component: 'build-system',
+            content: [
+              {
+                name: '力量流',
+                mainAttr: '力量',
+                subAttr: '生命、耐力',
+                features: '高爆发、高霸体值、不易被打断',
+                recommendations: '巨剑、大锤、重盾类兵器，战技：狮子斩、祈祷一击'
+              },
+              {
+                name: '灵巧流',
+                mainAttr: '灵巧',
+                subAttr: '感应、耐力',
+                features: '攻击频率高、机动性强、擅长出血叠加',
+                recommendations: '打刀、尸山血海、山贼弯刀，战技：切腹、居合'
+              },
+              {
+                name: '智力流',
+                mainAttr: '智力',
+                subAttr: '集中力、生命',
+                features: '远程高爆发，可结合近战武器',
+                recommendations: '名刀月隐、月光大剑、卡利亚辉剑'
+              },
+              {
+                name: '信仰流',
+                mainAttr: '信仰',
+                subAttr: '集中力、生命',
+                features: '出伤快、爆发高、覆盖火焰与神圣属性',
+                recommendations: '狩猎神邸大剑、亵渎圣剑、黄金律圣印记'
+              },
+              {
+                name: '感应流',
+                mainAttr: '感应',
+                subAttr: '集中力、生命',
+                features: '主打异常状态、腐败流、龙类祷告',
+                recommendations: '感应加成匕首、龙飨圣印记'
+              }
+            ]
+          },
+          {
+            id: 'mod',
+            number: '4',
+            title: '模组（Mod）指南',
+            subsections: [
+              {
+                id: 'mod-intro',
+                title: '模组介绍',
+                component: 'mod-system',
+                content: [
+                  {
+                    title: '模组简介',
+                    description: 'Mod是玩家对游戏内容的非官方扩展，可改变建模、敌人、技能、玩法等。',
+                    table: {
+                      headers: ['类型', '描述', '示例'],
+                      rows: [
+                        { id: 1, cells: ['美化Mod', '画面、界面、模型美化', '高清纹理包、换脸Mod'] },
+                        { id: 2, cells: ['便利Mod', '简化操作、增强功能', '自动拾取、快捷菜单'] },
+                        { id: 3, cells: ['战斗Mod', '平衡调整、内容增加', 'Boss AI增强、新武器'] },
+                        { id: 4, cells: ['随机Mod', '随机化游戏内容', '随机Boss、掉落'] },
+                        { id: 5, cells: ['整合Mod', '集成多个功能', '增强版整合包'] }
+                      ]
+                    }
+                  }
+                ]
+              },
+              {
+                id: 'mod-creation',
+                title: 'Mod制作',
+                component: 'basic-info',
+                content: {
+                  description: '制作模组需要掌握基本工具的使用方法和游戏数据结构。',
+                  details: [
+                    {
+                      title: '制作准备',
+                      content: '• 掌握基础英文<br>• 理解游戏结构<br>• 熟悉文本编辑<br>• 了解数据和贴图基础'
+                    },
+                    {
+                      title: '必备工具',
+                      content: '• UXM Selective：解包游戏文件<br>• DSMapStudio：修改游戏数据<br>• Yabber：处理.dcx文件<br>• Mod Engine 2：加载Mod<br>• Notepad++：编辑文本文件<br>• Blender/PS：处理模型和贴图'
+                    },
+                    {
+                      title: '注意事项',
+                      content: '• 仅离线使用Mod<br>• 使用Mod Engine加载<br>• 保持数据一致性<br>• 避免混用多个regulation.bin<br>• 遵守社区规则'
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ])
+
+        const setActiveTab = (sectionId, tabId) => {
+          activeTab.value[sectionId] = tabId
+        }
+
+        onMounted(() => {
+          // 初始化每个章节的默认活动标签页
+          sections.value.forEach(section => {
+            if (section.subsections && section.subsections.length > 0) {
+              activeTab.value[section.id] = section.subsections[0].id
+            }
+          })
+
+          // 监听滚动以更新当前章节
+          const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+              if (entry.isIntersecting) {
+                currentSection.value = entry.target.id
+              }
+            })
+          }, { threshold: 0.1 })
+
+          // 观察所有章节
+          sections.value.forEach(section => {
+            const element = document.getElementById(section.id)
+            if (element) {
+              observer.observe(element)
+            }
+          })
+
+          // 监听窗口大小变化，在大屏幕时自动显示侧边栏
+          const handleResize = () => {
+            if (window.innerWidth >= 768) {
+              showSidebar.value = true
+            }
+          }
+          window.addEventListener('resize', handleResize)
+          handleResize() // 初始化时执行一次
+
+          return () => {
+            window.removeEventListener('resize', handleResize)
+          }
+        })
+
+        return {
+          sections,
+          currentSection,
+          activeTab,
+          setActiveTab,
+          showSidebar
+        }
+      }
+    })
+
+    app.mount('#app')
+  </script>
+</body>
+</html>
